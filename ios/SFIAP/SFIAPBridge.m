@@ -18,7 +18,11 @@ RCT_EXPORT_METHOD(pay:(NSString *)productId callBack:(RCTResponseSenderBlock)cal
     [[SFIAP share] pay:productId paySuc:^{
       callBack(@[[NSNull null]]);
     } payFail:^(NSString *message) {
-      callBack(@[@"-1",message]);
+      if ([message isEqualToString:@"用户取消交易"]){
+        callBack(@[@"-1",message]);
+      }else{
+        callBack(@[@"-2",message]);
+      }
     }];
   });
 }

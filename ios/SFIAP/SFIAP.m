@@ -22,14 +22,7 @@ static SFIAP *_iap = NULL;
   }
   return _iap;
 }
--(void)showPrompt:(NSString *)message{
-  UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"支付提示"
-                                                       message:message
-                                                      delegate:nil
-                                             cancelButtonTitle:@"确定"
-                                             otherButtonTitles: nil];
-  [alert show];
-}
+
 -(void)pay:(NSString *)productId paySuc:(paySuccess)paySuc payFail:(payFail)payFail{
   _sucBolock = paySuc;
   _failBlock = payFail;
@@ -38,7 +31,6 @@ static SFIAP *_iap = NULL;
   if([SKPaymentQueue canMakePayments]){
     [self requestProductData:productId];
   }else{
-    [self showPrompt:@"请先开启应用内付费购买功能。"];
     if (_failBlock){
       _failBlock(@"请先开启应用内付费购买功能。");
     }
@@ -60,7 +52,6 @@ static SFIAP *_iap = NULL;
   NSLog(@"--------------收到产品反馈消息---------------------");
   NSArray *product = response.products;
   if([product count] == 0){
-    [self showPrompt:@"没有该商品"];
     if (_failBlock){
       _failBlock(@"没有该商品");
     }
@@ -83,6 +74,11 @@ static SFIAP *_iap = NULL;
       NSLog(@"不不不相同");
     }
   }
+  if (!p){
+    if (_failBlock){
+      _failBlock(@"没有该商品");
+    }
+  }
   SKPayment *payment = [SKPayment paymentWithProduct:p];
   NSLog(@"发送购买请求");
   [[SKPaymentQueue defaultQueue] addPayment:payment];
@@ -90,7 +86,9 @@ static SFIAP *_iap = NULL;
 
 //请求失败
 - (void)request:(SKRequest *)request didFailWithError:(NSError *)error{
-  [self showPrompt:[error localizedDescription]];
+  if (_failBlock){
+    _failBlock([error localizedDescription]);
+  }
 }
 
 - (void)requestDidFinish:(SKRequest *)request{
@@ -183,13 +181,14 @@ static SFIAP *_iap = NULL;
 - (void)failedTransaction:(SKPaymentTransaction *)transaction {
   if(transaction.error.code != SKErrorPaymentCancelled) {
     NSLog(@"购买失败");
-    [self showPrompt:@"购买失败，请重新尝试购买"];
     if (_failBlock){
       _failBlock(@"购买失败，请重新尝试购买");
     }
   } else {
     NSLog(@"用户取消交易");
-    [self showPrompt:@"用户取消交易"];
+    if (_failBlock){
+      _failBlock(@"用户取消交易");
+    }
   }
   [[SKPaymentQueue defaultQueue] finishTransaction: transaction];
 }
